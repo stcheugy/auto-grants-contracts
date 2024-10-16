@@ -1,3 +1,5 @@
+function autoBudget()
+{
 //Global variables
 var alotBox = this.getField("alotBox");
 var pdrBox = this.getField("pdrBox");
@@ -9,415 +11,296 @@ var exCheck = (exBox.value === "Yes");
 
 var resetFields = [lineItemGroup, subTotals, ssRates, suppServ, ssValues, grandTotals];
 
-function checkHandler() {
-    // Assign the currently checked box to the variable
-    var currentBox;
-
-    // Determine which checkbox was interacted with
-    if (alotBox.value === "Yes") {
-        currentBox = "alotBox";
-        // Clear fields of other checkboxes
-        pdrBox.value = "Off";  // Set the other checkboxes to "Off"
-        exBox.value = "Off";  
-    } else if (pdrBox.value === "Yes") {
-        currentBox = "pdrBox";
-        alotBox.value = "Off"; // Set the other checkboxes to "Off"
-        exBox.value = "Off";  
-    } else if (exBox.value === "Yes") {
-        currentBox = "exBox";
-        alotBox.value = "Off"; // Set the other checkboxes to "Off"
-        pdrBox.value = "Off";  
-    }
-
-   }
-
-// Set the action for each checkbox
-alotBox.setAction("Mouse Up", checkHandler);
-pdrBox.setAction("Mouse Up", checkHandler);
-exBox.setAction("Mouse Up", checkHandler);
 // getFields and objects for regular calculations and rates
 
 var validator = this.getField("validator");
 
 var lineItemsGroup = [
-	{ name: "inCash.", count: 12 },
-	{ name: "inMatch.", count: 12 },
-	{ name: "grantEx.", count: 20 },
-	{ name: "matchEx.", count: 20 }
-	];
+    { name: "inCash.", count: 12 },
+    { name: "inMatch.", count: 12 },
+    { name: "grantEx.", count: 20 },
+    { name: "matchEx.", count: 20 }
+    ];
 
 var subTotals = [
-	{ key: "icTotal", value: 0 },
-	{ key: "imTotal", value: 0 },
-	{ key: "geTotal", value: 0 },
-	{ key: "meTotal", value: 0 }
-	];
+    {"icTotal": 0 },
+    {"imTotal": 0 },
+    {"geTotal": 0 },
+    {"meTotal": 0 }
+    ];
 
 var ssRates = {
-	ten: alotCheck ? 0 : 0.10,	 
-	two: alotCheck ? 0 : 0.018,	
-	tentwo: alotCheck ? 0 : 0.118
-	};	
+    ten: alotCheck ? 0 : 0.10,     
+    two: alotCheck ? 0 : 0.018,    
+    tentwo: alotCheck ? 0 : 0.118
+    };    
 
 var suppServ = ["sscash", "ssmatch", "grantss.0", "grantss.1", "matchss.0", "matchss.1"];
 
 var ssValues = {
-	sscash: (subTotals["icTotal"].value * ssRates.tentwo),
-	ssmatch: (subTotals["imTotal"].value * ssRates.tentwo),
-	grantss0: (subTotals["geTotal"].value * ssRates.ten),
-	grantss1: (subTotals["geTotal"].value * ssRates.two),
-	matchss0: (subTotals["meTotal"].value * ssRates.ten),
-	matchss1: (subTotals["meTotal"].value * ssRates.two)
+    sscash: (subTotals["icTotal"].value * ssRates.tentwo),
+    ssmatch: (subTotals["imTotal"].value * ssRates.tentwo),
+    grantss0: (subTotals["geTotal"].value * ssRates.ten),
+    grantss1: (subTotals["geTotal"].value * ssRates.two),
+    matchss0: (subTotals["meTotal"].value * ssRates.ten),
+    matchss1: (subTotals["meTotal"].value * ssRates.two)
 };
-
-//Grand Totals
-var grandTotals = 
-	icGrand: (
-		{ fieldName: "imGrand", value: subTotals.find(item => item.key === "imTotal").value + (subTotals.find(item => item.key === "imTotal").value * ssRates.tentwo) },
-		{ fieldName: "geGrand", value: subTotals.find(item => item.key === "geTotal").value + (subTotals.find(item => item.key === "geTotal").value * ssRates.ten) + (subTotals.find(item => item.key === "geTotal").value * ssRates.two) },
-		{ fieldName: "meGrand", value: subTotals.find(item => item.key === "meTotal").value + (subTotals.find(item => item.key === "meTotal").value * ssRates.ten) + (subTotals.find(item => item.key === "meTotal").value * ssRates.two) }
-	];
-
-
 function valuesHandler() 
 {
-	// Calculate each field value based on totals and rates
-	lineItemsGroup.forEach(function(group) {
-		var groupTotal = 0;
-		for (var i = 0; i < group.count; i++) {
-			var groupField = this.getField(group.name + i);
-			
-			// Check if the field exists
-			if (!groupField) {
-				console.warn("Field " + group.name + i + " not found.");
-				continue;
-			}
+    // Calculate each field value based on totals and rates
+    lineItemsGroup.forEach(function(group) {
+        var groupTotal = 0;
+        for (var i = 0; i < group.count; i++) {
+            var groupField = this.getField(group.name + i);
+            
+            // Check if the field exists
+            if (!groupField) {
+                console.warn("Field " + group.name + i + " not found.");
+                continue;
+            }
 
-			var groupValue = parseFloat(groupField.value);
-			if (isNaN(groupValue)) {
-				groupValue = 0;  // Default to 0 if not a valid number
-			}
-			groupTotal += groupValue;
-		}
+            var groupValue = parseFloat(groupField.value);
+            if (isNaN(groupValue)) {
+                groupValue = 0;  // Default to 0 if not a valid number
+            }
+            groupTotal += groupValue;
+        }
 
-		// Update subTotals
-		var currentSubTotal = subTotals.find(item => group.name.includes(item.key.substring(0, 2)));
-		if (currentSubTotal) {
-			currentSubTotal.value = groupTotal;
-		} else {
-			console.error("Subtotal object for " + group.name + " not found.");
-		}
-	}, this);
+        // Update subTotals
+        var currentSubTotal = subTotals.find(item => group.name.includes(item.key.substring(0, 2)));
+        if (currentSubTotal) {
+            currentSubTotal.value = groupTotal;
+        } else {
+            console.error("Subtotal object for " + group.name + " not found.");
+        }
+    }, this);
 
-	// Update supportive services field values
-	suppServ.forEach(function(service) {
-		var field = this.getField(fieldName);
-		if (!field) {
-			console.warn("Field " + fieldName + " not found.");
-			return;
-		}
+    // Update supportive services field values
+    suppServ.forEach(function(service) {
+        var field = this.getField(fieldName);
+        if (!field) {
+            console.warn("Field " + fieldName + " not found.");
+            return;
+        }
 
-		if (fieldName === "sscash") {
-			field.value = ssValues.sscash;
-		} else if (field === "ssmatch") {
-			field.value = ssValues.ssmatch;
-		} else if (field === "grantss") {
-			field.value = grantss.index === 0 ? ssValues.grantss[0] : ssValues.grantss[1];
-		} else if (field === "meTotal") {
-			field.value = matchss.index === 0 ? ssValues.matchss[0] : ssValues.matchss[1];
-		}
-	}, this);
+        if (fieldName === "sscash") {
+            field.value = ssValues.sscash;
+        } else if (field === "ssmatch") {
+            field.value = ssValues.ssmatch;
+        } else if (field === "grantss") {
+            field.value = grantss.index === 0 ? ssValues.grantss[0] : ssValues.grantss[1];
+        } else if (field === "meTotal") {
+            field.value = matchss.index === 0 ? ssValues.matchss[0] : ssValues.matchss[1];
+        }
+    }, this);
 
-	// Update grand totals field values
-	grandTotals.forEach(function(total) {
-		var field = this.getField(total.fieldName);
-		if (!field) {
-			console.error("Field " + total.fieldName + " not found.");
-			return;
-		}
-		field.value = total.value;
-	}, this);
+    // Update grand totals field values
+    grandTotals.forEach(function(total) {
+        var field = this.getField(total.fieldName);
+        if (!field) {
+            console.error("Field " + total.fieldName + " not found.");
+            return;
+        }
+        field.value = total.value;
+    }, this);
 }
-
-//validation block
-
-function validateTotals() {
-	var errors = {
-		cgError: {
-			name: ['valid', 'icGrand', 'geGrand'],
-			value: "Cash and Grant grand totals are not equal!",
-			fillColor: 'red'
-		},
-		mmError: {
-			name: ['valid', 'imGrand', 'meGrand'],
-			value: "Income and Expenditure Match grand totals are not equal!",
-			fillColor: 'red'
-		},
-		noError: {
-			name: ['valid', 'icGrand', 'imGrand', 'geGrand', 'meGrand'],
-			value: "Budget validator complete, budget is balanced!",
-			fillColor: 'green'
-		},
-		resetError: {
-			name: ['valid', 'icGrand', 'imGrand', 'geGrand', 'meGrand'],
-			value: "Budget validator, fillColor: white"
-		}
-	};
-
-	var grandValues = {};
-	var grandTotals = ['icGrand', 'geGrand', 'imGrand', 'meGrand']; // Define your grand totals array
-
-	// Populate grandValues from fields
-	grandTotals.forEach(function(fieldName) {
-		var field = this.getField(fieldName);
-		grandValues[fieldName] = parseFloat(field.value) || 0;
-	}, this); // Pass 'this' to access the current context inside the loop
-
-	// Higher-order function for validation
-	function validatePair(field1, field2, error) {
-		if (grandValues[field1] !== grandValues[field2]) {
-			error.name.forEach(function(name) {
-				var field = this.getField(name);
-				field.fillColor = error.fillColor; // Set fill color to red
-			}, this);
-			return error.value; // Return the error message
-		}
-		return null; // Return null if no error
-	}
-
-	// Perform validations
-	var errorMessages = [];
-	errorMessages.push(validatePair('icGrand', 'geGrand', errors.cgError));
-	errorMessages.push(validatePair('imGrand', 'meGrand', errors.mmError));
-
-	// Filter out null values (no errors) from the errorMessages array
-	errorMessages = errorMessages.filter(function(message) {
-		return message !== null;
-	});
-
-	// Update the valid field based on errors
-	if (errorMessages.length > 0) {
-		valid.value = "Budget is not balanced! " + errorMessages.join(" ");
-		valid.fillColor = 'red'; // Set valid field color to red for errors
-	} else if (
-	else {
-		valid.value = "Budget validator complete, budget is balanced!";
-		valid.fillColor = 'green'; // Set valid field color to green if balanced
+function checkHandler() {
+    const boxGroup = 
+    [
+        { field: alotBox, value: Off },
+        { field: pdrBox, value: Off },
+        { field: exBox, value: Off }
+    ]
+	if (alotBox.value === "Yes") {
+		currentBox = "alotBox";
+		// Clear fields of other checkboxes
+		pdrBox.value = "Off";  // Set the other checkboxes to "Off"
+		exBox.value = "Off";  
+	} else if (pdrBox.value === "Yes") {
+		currentBox = "pdrBox";
+		alotBox.value = "Off"; // Set the other checkboxes to "Off"
+		exBox.value = "Off";  
+	} else if (exBox.value === "Yes") {
+		currentBox = "exBox";
+		alotBox.value = "Off"; // Set the other checkboxes to "Off"
+		pdrBox.value = "Off";  
 	}
 }
-
-function boxHandler() 
-{
-	var boxGroup = 
-	[
-		{ field: alotBox, value: Off },
-		{ field: pdrBox, value: Off },
-		{ field: exBox, value: Off }
-	]
-	
-	boxGroup.setAction("Mouse Up", function()
-	{
-		if ( event.alotBox.value === "Yes")
-		{ 
-			pdrBox.value = Off;
-			exBox.value = Off;
-		}
-		else if (event.pdrBox.value === "Yes")
-		{
-			alotBox.value = Off;
-			exBox.value = Off;
-		}
-		else if (event.exBox.value === "Yes")
-		{
-			alotBox.value = Off;
-			pdrBox.value = Off;
-		}
-	}
-
-   	if (alotCheck) 
-	{
-		var alot = ["alotDesc", "alotValue", "alotForm", "alotCost", "alotUnit", "alotQuant", "alotQual", "alotInput", "unitInput", "quantInput", "qualInput"];
-				
-		alot.forEach(function(fieldName, index) 
-		{
-			var field = this.getField(fieldName); 
-			field.display = display.visible; 
-			if (index === 1 && field.value !=="")
-			{
-				this.getField("icTotal").value = alotValue.value;
-			}
-			if ( index > 6 && field.value !== "")
-			{
-				var alotResult = this.getField("alotResult");
-				alotResult.display = display.visible;
-				alotResult.value = alotInput + " " + unitInput + " " + quantInput + " " + qualInput;
-			}
-			for (var i = 0; i < 20; i++) 
-				{
-				var grantEx = this.getField("grantEx." + i);
-				grantEx.display = alotCheck ? display.visible : display.hidden;
-				}
-		}, this);
-	}
-		
-	
-		
-	
-	if (pdrCheck) 
-	{
-		var pdrFields = ["pdrCost.0", "pdrCost.1", "pdrUnit.0", "pdrUnit.1", "pdrDays.0", "pdrDays.1"];
-   		var pdrTotal = costpd * unitpd * dayspd;
-		var pdrInputs = ["pdrCost.1", "pdrUnit.1", "pdrDays.1];
-
-			pdrFields.forEach(function (fieldName, index) 
-		{
-				var field = this.getField(fieldName);
-			if (field)
-			{
-				field.value = 
-				field.display = pdrCheck ? display.visible : display.hidden;
-			this.getField("other2").value = "Per Diem Total";
-			this.getField("incomecash.11").value = pdrTotal;
-			
-			}, this);
-
-   		 for (var i = 0; i < 20; i++) 
-		{
-	   			var grantEx = this.getField("grantEx." + i);
-				grantEx.display = pdrCheck ? display.visible : display.hidden;
-		}, this);
-			
-	   		if (!isNaN("pdrCost.1") && !isNaN(pdrUnit.1) && !isNaN(dayspd)) 
-		{
-			this.getField("perdiemtext").value = "Per Diem Total: $" + pdrTotal.toFixed(2) + "\n\nPlease enter the projected expenditures to be covered under these funds for this base/option year.";
-
-			for (var i = 0; i < 20; i++) {
-				var gpdBox = this.getField("grantperdiem." + i);
-				var gpdCheck = (gpdBox.value === "Yes");
-				var grantex = this.getField("grantexpend." + i);
-				var grantexCheck = parseFloat(grantex.value) || 0;
-
-				if (gpdCheck && !isNaN(grantexCheck)) {
-					total += grantexCheck;
-				}
-			}
-			this.getField("grantexpendtotal").value = total;
-		}
-	}
-	
-	if (exCheck)
-	{
-		lineItemsGroup[inCash].forEach(fieldName, index)
-		{
+function boxHandler(){	
+	// Set the action for each checkbox
+	alotBox.setAction("Mouse Up", checkHandler);
+	pdrBox.setAction("Mouse Up", checkHandler);
+	exBox.setAction("Mouse Up", checkHandler);
+    boxGroup.setAction("Mouse Up")
+    {
+        if (alotBox.value === "Yes")
+        { 
+            pdrBox.value = Off;
+            exBox.value = Off;
+        }
+        else if (pdrBox.value === "Yes")
+        {
+            alotBox.value = Off;
+            exBox.value = Off;
+        }
+        else if (exBox.value === "Yes")
+        {
+            alotBox.value = Off;
+            pdrBox.value = Off;
+        }
+    }
+	if (alotCheck) {
+        const alot = ["alotDesc", "alotValue", "alotForm", "alotCost", "alotUnit", "alotQuant", "alotQual", "alotInput", "unitInput", "quantInput", "qualInput"];
+                
+        alot.forEach(function(fieldName, index) 
+        {
+            var field = this.getField(fieldName); 
+            field.display = display.visible; 
+            if (index === 1 && field.value !=="")
+            {
+                this.getField("icTotal").value = alotValue.value;
+            }
+            if ( index > 6 && field.value !== "")
+            {
+                var alotResult = this.getField("alotResult");
+                alotResult.display = display.visible;
+                alotResult.value = alotInput + " " + unitInput + " " + quantInput + " " + qualInput;
+            }
+            for (var i = 0; i < 20; i++) 
+                {
+                var grantEx = this.getField("grantEx." + i);
+                grantEx.display = alotCheck ? display.visible : display.hidden;
+                }
+        }, this);
+    }
+    if (pdrCheck) {
+        var pdrFields = ["pdrCost.0", "pdrCost.1", "pdrUnit.0", "pdrUnit.1", "pdrDays.0", "pdrDays.1"];
+        var pdrValue = {costpd: 0, unitpd: 0, dayspd: 0};
+        var pdrInputs = ["pdrCost.1", "pdrUnit.1", "pdrDays.1"];
+		const grantEx = ["grantEx."];
+        pdrFields.forEach(function(fieldName){
 			var field = this.getField(fieldName);
-			if (fieldName[11]) 
-			{
-				field.
-		suppServ.forEach(function(fieldName)
-		{
-			
-								
-	if (!alotCheck && !pdrCheck) 
-	{
-		totalsGroup.forEach(function(group, index)
-		{
-			var groupTotal = 0;
-			for ( var j = 0; j < group.count ; j++) 
-			{
-				var groupField = this.getField(group.name + j );
-				var groupValue = parseFloat(groupField.value) || 0;
-				groupTotal += groupValue;
+			if (field){
+				field.display = pdrCheck ? display.visible : display.hidden;
+				this.getField("other2").value = "Per Diem Total:";
+				this.getField("inCash.11").value = pdrTotal;
 			}
-			this.getField(subTotals.fieldName + index ).value = groupTotal;
-			
+		}, this)};
+		pdrInputs.forEach(function(fieldName){
+			var field = this.getField(fieldName);
+			field[0].value = pdrValue.costpd;
+			field[1].value = pdrValue.unitpd;
+			field[2].value = pdrValue.dayspd;
 		}, this);
-	}		
-	   
-   
-  	
-function salaryCalculator ()
-{
-	var staffSalary = this.getField("staffSalary");
-	var staffTotal = this.getField("staffTotal");
-	var grantexpend0 = this.getField("grantexpend.0");
-	var matchexpend0 = this.getField("matchexpend.1");
-	var salaryCalculator = this.getField("salaryCalculator");
-	var staffTotal = this.getfield("staffTotal");
-	var questions = this.getField("ques.");
-	var staffFields = ["title.", "nex.", "ftpt.", "percent.", "fringe.", "salary.", "result."];
+        grantEx.forEach(function(fieldName) {
+			var field = this.getField(fieldName + i);
+			field.display = pdrCheck ? display.visible : display.hidden;;
+		}, this);
+        if (!isNaN(costpd) && !isNaN(unitpd) && !isNaN(dayspd)) {
+			pdrTotal = (costpd * unitpd * dayspd);
+			this.getField("perdiemtext").value = "Per Diem Total: $" + pdrTotal.toFixed(2) + "\n\nPlease enter the projected expenditures to be covered under these funds for this base/option year.";
+            for (var i = 0; i < 20; i++) {
+                var gpdBox = this.getField("grantperdiem." + i);
+                var gpdCheck = (gpdBox.value === "Yes");
+                var grantex = this.getField("grantexpend." + i);
+                var grantexCheck = parseFloat(grantex.value) || 0;
 
-	var on = "Staff salaries detected. Salary Calculator is ON. Please enter the number of staff covered under this grant in the box to the right."
-	var off = "No staff salaries detected. Salary Calculator is OFF."
-	
-	
-	if ( grantexpend0.value !== "" || matchexpend0.value !== "") 
-	{
-		salaryCalculator.value = on;
-		salaryCalculator.fillColor = fillColor.green;
-		for ( var i = 0; i < 5; i++ )
-		{
-			if ( salaryCalculator.value = on ) 
-			{
-				question[i].display = display.visible;
-			}
-			else 
-			{
-				question[i].display = display.hidden;
-			}
+                if (gpdCheck && !isNaN(grantexCheck)) {
+                    total += grantexCheck;
+                }
+            }
+            this.getField("grantexpendtotal").value = total;
+        }
+    }    
+    if (exCheck) {
+        lineItemsGroup[inCash].forEach(fieldName, index);
+            var field = this.getField(fieldName);
+            field.value = "FEMA funding"
 		}
-		
-		
-	   		for (var i = 0; i < staffFields.length; i++) 
-		{
-				for (var j = 0; j < 3; j++) 
-			{
-						var fieldName = staffFields[i] + "." + j;
-						var field = this.getField(fieldName);
-	
-			   		if (parseInt(staffTotal) > 0 && parseInt(staffTotal) <= 3) 
-				{
-							if (j < parseInt(staffTotal)) 
-					{
-						field.display = display.visible; // Show the field
-			   				} 
-					else 
-					{
-									field.display = display.hidden;  // Hide the field
-							}	
-				}	
-		   		}
-			else if (parseInt(staffTotal.value) == 4) 
-			{
-				app.alert 
-				({
-					cMsg: "For contracts that cover more than three (3) salaries, please attach the salary information in a separate document.",
-					nIco: 3,
-					cTitle: "Four or more staff salaries detected!"
-				});
-			}
+		this.getfield("sscash").value = 0;
+	} 
+	function runValues(){                          
+        if (!alotCheck && !pdrCheck) {
+            totalsGroup.forEach(function(group, index) {
+                var groupTotal = 0;
+                for ( var j = 0; j < group.count ; j++) {
+                    var groupField = this.getField(group.name + j );
+                    var groupValue = parseFloat(groupField.value) || 0;
+                    groupTotal += groupValue;
+				}
+            this.getField(subTotals.fieldName + index ).value = groupTotal;
+			},this);
 		}
 	}
-			
-	// Hide all fields if staffTotal  is hidden or invalid
-	if (staffTotal  === 0 || staffTotal  === "" || staffTotal  === null) 
-	{
-		for (var j = 0; j < staffFields.length; j++) 
-		{
-			for (var i = 0; i < 3; i++) 
-			{
-				var fieldName = staffFields[j] + "." + i;
+function salaryCalculator (){
+    var staffTotal = this.getField("staffTotal");
+    var grantexpend0 = this.getField("grantexpend.0");
+    var matchexpend0 = this.getField("matchexpend.1");
+    var salaryCalculator = this.getField("salaryCalculator");
+    var staffTotal = this.getfield("staffTotal");
+    var question = this.getField("ques.");
+    var staffFields = ["title.", "nex.", "ftpt.", "percent.", "fringe.", "salary.", "result."];
+
+    var on = "Staff salaries detected. Salary Calculator is ON. Please enter the number of staff covered under this grant in the box to the right."
+    var off = "No staff salaries detected. Salary Calculator is OFF."
+    
+    
+    if ( grantexpend0.value !== "" || matchexpend0.value !== "") 
+    {
+        salaryCalculator.value = on;
+        salaryCalculator.fillColor = fillColor.green;
+        for ( var i = 0; i < 5; i++ )
+        {
+            if ( salaryCalculator.value = on ) {
+                question[i].display = display.visible;
+            } else {
+                question[i].display = display.hidden;
+            }
+        }
+		for (var i = 0; i < staffFields.length; i++) {
+			for (var j = 0; j < 3; j++) {
+				var fieldName = staffFields[i] + "." + j;
 				var field = this.getField(fieldName);
-				field.display = display.hidden;  // Hide all fields
+				if (parseInt(staffTotal) > 0 && parseInt(staffTotal) <= 3) {
+					if (j < parseInt(staffTotal)) {
+                        field.display = display.visible; // Show the field
+					} else {
+                        field.display = display.hidden;  // Hide the field
+					}    
+                } else (parseInt(staffTotal.value) == 4)
 			}
 		}
-	
-  	}
-	else 
-	{
-		salaryCalculator.value = off;
-		salaryCalculator.fillColor = fillColor.white;
-	}
-
-
-   }
+	app.alert 
+                ({
+                    cMsg: "For contracts that cover more than three (3) salaries, please attach the salary information in a separate document.",
+                    nIco: 3,
+                    cTitle: "Four or more staff salaries detected!"
+                });
+            }
+            
+    // Hide all fields if staffTotal  is hidden or invalid
+    if (staffTotal  === 0 || staffTotal  === "" || staffTotal  === null) 
+    {
+        for (var j = 0; j < staffFields.length; j++) 
+        {
+            for (var i = 0; i < 3; i++) 
+            {
+                var fieldName = staffFields[j] + "." + i;
+                var field = this.getField(fieldName);
+                field.display = display.hidden;  // Hide all fields
+            }
+        }
+    
+      }
+    else 
+    {
+        salaryCalculator.value = off;
+        salaryCalculator.fillColor = fillColor.white;
+    }
+}
+boxHandler();
+valuesHandler();
+runValues();
+validator();
+salaryCalculator();
 
