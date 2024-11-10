@@ -1,0 +1,515 @@
+function autoBudget() {
+    var lineItems = ["inCash.", "inMatch.", "grantEx.", "matchEx."];
+    var totalFields = ["icTotal", "meTotal", "geTotal", "meTotal"];
+    var pdrFields = ["pdrCost", "pdrUnit", "pdrDays", "inputCost", "inputUnit", "inputDays"];
+    
+    var runningLines = {
+        inCash : 0,
+        inMatch : 0,
+        grantEx : 0,
+        matchEx : 0,
+        inAlot : 0,
+        inPDR : 0,
+        inDeoblg : 0
+    }
+    
+    var subTotals = {
+        icTotal : 0,
+        imTotal : 0,
+        geTotal : 0,
+        meTotal : 0,
+        alotTotal : 0,
+        pdrTotal : 0,
+        deoblg: 0
+
+    }
+
+    const ssRates = {
+        tentwo : 0.118,
+        ten : 0.1,
+        two : 0.018,
+        nonmon: 0
+    }
+
+    var suppServ = {
+        sscash : 0,
+        ssmatch: 0,
+        grantss : {
+            "grantss.0" : 0,
+            "grantss.1" : 0,
+        },
+        matchss : {
+            "matchss.0" : 0,
+            "matchss.1" : 0
+        },
+        nonmonss : 0,
+        pdrss : 0,
+    }
+
+    var ssMap = {
+        sscash : (subTotals.icTotal * ssRates.tentwo),
+        ssmatch : (subTotals.imTotal * ssRates.tentwo),
+        grantss : {
+            "grantss.0" : (subTotals.geTotal * ssRates.ten),
+            "grantss.1" : (subTotals.geTotal * ssRates.ten)
+        },
+        matchss : {
+            "matchss.0" : (subTotals.geTotal * ssRates.ten),
+            "matchss.1" : (subTotals.geTotal * ssRates.ten)
+        },
+        nonmonss: 0,
+        pdrss : (subTotals.pdrTotal * ssRates.tentwo),
+
+    }
+
+    var grandMap = {
+        icGrand : (ssMap.sscash + subTotals.icTotal),
+        imGrand : (ssMap.sscash + subTotals.imTotal),
+        geGrand : (ssMap["grantss.0"] + ssMap["grantss.1"] + subTotals.geTotal),
+        meGrand : (ssMap["matchss.0"] + ssMap["matchss.1"] + subTotals.meTotal),
+        alotGrand : (ssMap["nonmonss"] + subTotals.alotTotal),
+        pdrGrand : (ssMap["pdrss"] + subTotals.pdrTotal),
+        nonmonGrand : (subTotals.nonmon)
+    }
+    
+    function branchBoxes() {
+        var boxGroup = ["alotBox", "pdrBox", "exBox", "deBox"];
+
+        var alotBox = this.getField("alotBox");
+        var pdrBox = this.getField("pdrBox");
+        var exBox = this.getField("exBox");
+        var deBox = this.getField("deBox")
+        
+        for (var i = 0; i < boxGroup.length; i++) {
+            var field = this.getField(boxGroup[i]);
+            if (field.value === "Yes") {
+                switch (boxGroup[i]) {
+                    case "alotBox":
+                        runAlotTotals();
+                        pdrBox.value = "Off";
+                        exBox.value = "Off";
+                        deBox.value = "Off";
+                        this.getField("alotValue").display = display.visible;
+                        break;
+
+                    case "pdrBox":
+                        runPdrTotals();
+                        alotBox.value = "Off";
+                        exBox.value = "Off";
+                        deBox.value = "Off";
+                        for (var j = 0; J < pdrFields.length; j ++){
+                            var field = this.getField(pdrFields[j]);
+                            field.display = display.visible;
+                        }
+                        break;
+
+                    case "exBox":
+                        runTotals("Yes");
+                        alotBox.value = "Off";
+                        pdrBox.value = "Off";
+                        deBox.value = "Off"
+                        break;
+                    case "deBox":
+                        runDeoblg();
+                        alotBox.value = "Off";
+                        pdrBox.value = "Off";
+                        exBox.value = "Off";
+                        break;
+                    default:
+                        runtotals();
+                }
+                return; 
+            }
+        }
+        runtotals();
+    }
+
+    function runTotals() {
+        for (let i = 0; i < lineItems.length; i++){
+            var runTotal = 0;
+            switch(i) {
+                case 0:
+                    for (let j = 0; j < 12; j++){
+                        var field = this.getField(lineItems[i] + j);
+                        runTotal += parseFloat(field.value) || 0;
+                    }
+                    subTotals.icTotal = runTotal;
+                    break;
+                case 1: 
+                    for (let j = 0; j < 12; j++){
+                        var field = this.getField(lineItems[i] + j);
+                        runTotal += parseFloat(field.value) || 0;
+                    }
+                    subTotals.imTotal = runTotal;
+                    break;
+                case 2:
+                    for (let j = 0; j < 20; j++){
+                        var field = this.getField(lineItems[i] + j);
+                        runTotal += parseFloat(field.value) || 0;
+                    }
+                        subTotals.geTotal = runTotal;
+                        break;
+                case 3: 
+                    for (let j = 0; j < 20; j++){
+                        var field = this.getField(lineItems[i] + j);
+                        runTotal += parseFloat(field.value) || 0;
+                    }
+                        subTotals.meTotal = runTotal;
+                        break;
+            }
+
+        }
+    }
+    function runPdrTotals() {
+        for (i = 0; i < pdrFields.length; i++){
+            var field = this.getField(pdrFields[i]);
+            var cost = 0;
+            var unit = 0;
+            var days = 0
+            if (!isNaN(field.value) && field.value !== ""){
+                switch(i) {
+                    case 3: 
+                       cost = parseFloat(field.value) || 0;
+                       break;
+                    case 4: 
+                        unit = parseFloat(field.value) || 0;
+                        break;
+                    case 5: 
+                        days = parseFloat(field.value) || 0;
+                        break;
+                }
+            }
+        }
+        pdrTotal = cost * unit * days;
+        subTotals.pdrTotal = pdrTotal;
+        for (var i = 0; i < totalFields.length; i++){
+            var field = this.getField(totalFields[i])
+            switch(i){
+                case 0:
+                    field.value = subTotals["pdrTotal"];
+                    break;
+                case 1: 
+                    field.value = subTotals["imTotal"];
+                    break;
+                case 2:
+                    field.value = subTotals["geTotal"];
+                    break;
+                case 3: 
+                    field.value = subTotals["meTotal"];
+                    break;
+            }
+            
+        }
+        
+    }
+
+    
+    function runAlotTotals(){
+        var alotValue = this.getField("alotValue");
+        subTotals.alotTotal = alotValue.value;
+
+        for ( let i = 1; i < lineItems.length; i++){
+            var runTotal = 0
+            switch(i){
+                case 1: 
+                    for ( let j = 0; j < 12; j++){
+                        var field = this.getField(lineItems[i] + j);
+                        runTotal += field.value || 0;
+                    }
+                    subTotals.imTotal = runTotal;
+                    break;
+                case 2: 
+                    for ( let j = 0; j < 20; j++) {
+                        var field = this.getField(lineItems[i]+j);
+                        runTotal += field.value || 0;
+                    }
+                    subTotals.geTotal = runTotal;
+                    break;
+                case 3:
+                    for (let j = 0; j < 20; j++){
+                        var field = this.getField(lineItems[i] + j);
+                        runTotal += field.value || 0;
+                    }
+                    subTotals.meTotal = runTotal;
+                    break;
+            }
+            
+        }
+        for (var i = 0; i < totalFields.length; i++){
+            var field = this.getField(totalFields[i])
+            switch(i){
+                case 0:
+                    field.value = subTotals["alotTotal"];
+                    break;
+                case 1:
+                    field.value = subTotals["imTotal"];
+                    break;
+                case 2:
+                    field.value = subTotals["geTotal"];
+                    break;
+                case 3:
+                    field.value = subTotals["meTotal"];
+                    break;
+            }
+            
+        }
+    }
+
+
+    function displayBoxes(fieldNames, displayState, resetValues = false) {
+        fieldNames.forEach(function(fieldName) {
+            var field = this.getField(fieldName);
+            if (field) {
+                field.display = displayState;
+                if (resetValues) {
+                    field.value = "";
+                }
+            }
+        }, this);
+    }
+    function resetBoxes() {
+        var resetFields = [
+            { key: alotBox, fields: ["alotDesc", "alotForm", "alotCost", "alotUnit", "alotQuant", "alotQual", "alotResult", "alotValue", "inAlotCost", "inAlotUnit", "inAlotQuant", "inAlotQual"] },
+            { key: pdrBox, fields: ["pdrCost", "pdrUnit", "pdrDays", "inPdrCost", "inPdrUnit", "inPdrDays", "perdiemtext"] },
+            { key: exBox, fields: ["sscash", "ssmatch", "grantss.0", "grantss.1", "matchss.0", "matchss.1"] }
+        ];
+        resetFields.forEach(function(item) {
+            displayBoxes().call(this, item.fields, display.hidden, true);
+        }, this);
+    }
+    
+    function boxHider(boxGroup) {
+        boxGroup.forEach(function(box) {
+            if (box.field !== currentBox) {
+                box.field.value = box.value;
+            }
+        });
+    }
+    
+    function valueHandler() {
+        var lineItemsGroup = [
+            { name: "inCash.", count: 12 },
+            { name: "inMatch.", count: 12 },
+            { name: "exGrant.", count: 20 },
+            { name: "exMatch.", count: 20 }
+        ];
+        var subTotalsGroup = [
+            {name: "icTotal", value: 0 },
+            {name: "imTotal", value: 0 },
+            {name: "geTotal", value: 0 },
+            {name: "meTotal", value: 0 }
+        ]
+        lineItemsGroup.forEach(function(group) {
+            var groupTotal = 0;
+            for (var i = 0; i < group.count; i++) {
+                var field = this.getField(group.name + i);
+                    // Check if the field exists
+                if (!groupField) {
+                    console.warn("Field " + group.name + i + " not found.");
+                    continue;
+                }
+            }
+            var groupValue = parseFloat(field.value);
+            groupTotal += groupValue;
+            subTotalsGroup.forEach(function(group) {            
+                var stGroupFields = this.getField(group.name);
+                stGroupFields.value = groupTotal;
+            }, this);
+        }, this);
+    }
+
+    
+    function alotHandler(){
+        var alot = ["alotDesc", "alotValue", "alotForm", "alotCost", "alotUnit", "alotQuant", "alotQual", "alotInput", "unitInput", "quantInput", "qualInput"];
+        alot.forEach(function(fieldName, index) {
+            var field = this.getField(fieldName); 
+            field.display = display.visible; 
+            if (index === 1 && field.value !==""){
+                this.getField("icTotal").value = alotValue.value;
+            }
+            if ( index > 6 && field.value !== ""){
+                var alotResult = this.getField("alotResult");
+                alotResult.display = display.visible;
+                alotResult.value = alotInput + " " + unitInput + " " + quantInput + " " + qualInput;
+            }
+            for (var i = 0; i < 20; i++) {
+                var grantEx = this.getField("grantEx." + i);
+                grantEx.display = alotCheck ? display.visible : display.hidden;
+                }
+        }, this);
+    }
+    function pdrHandler() {
+        var pdrFields = ["pdrCost", "pdrUnit", "pdrDays"];
+        var pdrInputs = [""]
+        var pdrValue = {costpd: 0, unitpd: 0, dayspd: 0};
+        var pdrInputs = ["pdrCost.1", "pdrUnit.1", "pdrDays.1"];
+        var grantEx = ["grantEx."];
+        pdrFields.forEach(function(fieldName){
+            var field = this.getField(fieldName);
+            if (field){
+                field.display = pdrCheck ? display.visible : display.hidden;
+                this.getField("other2").value = "Per Diem Total:";
+                this.getField("inCash.11").value = pdrTotal;
+            }
+        }, this);
+        pdrInputs.forEach(function(fieldName){
+            var field = this.getField(fieldName);
+            field[0].value = pdrValue.costpd;
+            field[1].value = pdrValue.unitpd;
+            field[2].value = pdrValue.dayspd;
+        }, this);
+        grantEx.forEach(function(fieldName) {
+            var field = this.getField(fieldName + i);
+        }, this);
+        if (!isNaN(costpd) && !isNaN(unitpd) && !isNaN(dayspd)) {
+            pdrTotal = (costpd * unitpd * dayspd);
+            this.getField("perdiemtext").value = "Per Diem Total: $" + pdrTotal.toFixed(2) + "\n\nPlease enter the projected expenditures to be covered under these funds for this base/option year.";
+            for (var i = 0; i < 20; i++) {
+                var gpdBox = this.getField("grantEx." + i);
+                var gpdCheck = (gpdBox.value === "Yes");
+                var grantEx = this.getField("grantEx." + i);
+                var grantexCheck = parseFloat(grantEx.value) || 0;
+                if (gpdCheck && !isNaN(grantexCheck)) {
+                    total += grantexCheck;
+                }
+            }
+            this.getField("grantexpendtotal").value = total;
+        }
+    }
+    function exHandler(){
+        lineItemsGroup[inCash].forEach(function(fieldName){
+            var field = this.getField(fieldName);
+            if (field[11]) {
+                field.value = 0;
+                var textField = this.getField("other2")
+                textField.value = "Funding"
+            } else {
+                field.value = "FEMA funding";
+            }
+        }, this);
+        this.getField("sscash").value = 0;
+        this.getField("icTotal").value = llineItemsGroup.inCash[11].value;
+    }
+    function validator(){
+        var grandTotals = ["icGrand", "geGrand", "imGrand", "meGrand"];
+        var validator = this.getField("validator");
+        var errors = {};
+        var noerrors = {};
+        var grantEx0 = this.getField("grantEx.0");
+        var grantEx1 = this.getField("grantEx.1");
+        var staffTotal = this.getField("staffTotal");
+        var fringeTotal = 0;
+        if (grantEx1 !== "" && staffTotal > 0 ) {
+            for (i = 0; i < parseInt(staffTotal.length); i++){
+                var fringe = this.getField("fringe." + i);
+                var salary = this.getField("salary." + i);
+                salary.value += salaryTotal;
+                fringe.value += fringeTotal;
+                if (salary.value !== grantEx0) {
+                    errors.push = "Salary amounts are not equal";
+                    grantEx0.fillColor = color.red;
+                    salary.fillColor = color.red;
+                } else {
+                    grantEx0.fillColor = color.white;
+                    salary.fillColor = color.white;
+                }
+                if (fringeTotal !== grantEx1){
+                    errors.push = "Fringe amounts are not equal";
+                    grantEx1.fillColor = color.red;
+                    fringe.fillColor = color.red;
+                } else {
+                    grantEx1.filLColor = color.white;
+                    fringe.fillColor = color.white;
+                }
+            }
+        }
+        grandTotals.forEach(function(fieldName){
+            var field = this.getField(fieldName);
+            if (field[0].value !== field[1].value){
+                errors.push = "Income Cash and Grant Expenditure Grand Totals are not equal!";
+                field.fillColor = color.red;
+            } else if (field[0].value == field[1].value) {
+                noerrors.push = ["Cash", "Grant"]
+                field.fillColor = color.white
+            }
+            if (field[2].value !== field[3].value){
+                errors.push = "Income Match and Match Expenditure Grand Totals are not equal!";
+                field.fillColor = color.red;
+            } else if (field[2].value == field[3].value) {
+                noerrors.push = ["Match Income", "Match Expendidure"]
+                field.fillColor = color.white;
+            }
+        }, this)
+        if (noerrors.length == 2 && errors.length == 0) {
+            validator.value = "Budget validation success!" + " " + noerrors.join(", ") + "Grand Totals are equal."
+        }
+        if (errors.length > 0) {
+            validator.value = "Budget is not balanced!" + " " + errors.join(" ");
+            validator.fillColor = color.red;
+        } else {
+            validator.value = "Budget validator";
+            validator.fillColor = color.white;
+        }
+    }
+    function calculateSalary() {
+        var staffTotal = this.getField("staffTotal");
+        var grantexpend0 = this.getField("grantexpend.0");
+        var matchexpend0 = this.getField("matchexpend.1");
+        var salaryCalculator = this.getField("salaryCalculator");
+        var staffTotal = this.getfield("staffTotal");
+        var question = this.getField("ques.");
+        var staffFields = ["title.", "nex.", "ftpt.", "percent.", "fringe.", "salary.", "result."];
+        var on = "Staff salaries detected. Salary Calculator is ON. Please enter the number of staff covered under this grant in the box to the right.";
+        var off = "No staff salaries detected. Salary Calculator is OFF."; 
+
+        salaryCalculator.value = off;
+        if ( grantexpend0.value !== "" || matchexpend0.value !== "") {
+            salaryCalculator.value = on;
+            salaryCalculator.fillColor = fillColor.green;
+            for ( var i = 0; i < 5; i++ ){
+                if ( salaryCalculator.value = on ) {
+                    question[i].display = display.visible;
+                } else {
+                    question[i].display = display.hidden;
+                }
+            }
+        for (var i = 0; i < staffFields.length; i++) {
+            for (var j = 0; j < 3; j++) {
+                var fieldName = staffFields[i] + "." + j;
+                var field = this.getField(fieldName);
+            if (parseInt(staffTotal) > 0 && parseInt(staffTotal) <= 3) {
+                if (j < parseInt(staffTotal)) {
+                    field.display = display.visible; // Show the field
+                } else {
+                    field.display = display.hidden;
+                }
+            } else {
+                (parseInt(staffTotal.value) == 4);
+            }
+        }
+        }
+    }
+    }
+        app.alert (
+            {cMsg: "For contracts that cover more than three (3) salaries, please attach the salary information in a separate document."},
+            {nIco: 3},
+            {cTitle: "Four or more staff salaries detected!"});
+        
+    if (staffTotal  === 0 || staffTotal  === "" || staffTotal  === null) {
+        for (var j = 0; j < staffFields.length; j++) {
+            for (var i = 0; i < 3; i++) {
+                var fieldName = staffFields[j] + "." + i;
+                var field = this.getField(fieldName);
+                field.display = display.hidden;  // Hide all fields
+            }
+        }
+    
+    } else {
+        salaryCalculator.value = off;
+    }
+}
+boxHandler();
+valueHandler();
+runValues();
+validator();
+calculateSalary();
